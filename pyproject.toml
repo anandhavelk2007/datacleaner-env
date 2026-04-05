@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "datacleaner-env"
+version = "1.0.0"
+description = "OpenEnv environment for AI‑driven data cleaning tasks"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Your Name", email = "you@example.com" }]
+dependencies = [
+    "openenv-core>=0.1.0",
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+    "openai>=1.0.0",
+    "pydantic>=2.0.0",
+    "fastapi>=0.100.0",
+    "uvicorn>=0.23.0",
+    "requests>=2.31.0",
+    "streamlit>=1.25.0",
+]
+
+[project.scripts]
+server = "server.run:main"
+
+[tool.openenv]
+environment-module = "env.environment"
+environment-class = "DataCleanerEnv"
+action-model = "env.models.Action"
+observation-model = "env.models.Observation"
+reward-model = "env.models.Reward"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["env*", "tests*", "optional_ui*", "server*"]

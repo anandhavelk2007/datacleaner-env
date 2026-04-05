@@ -1,0 +1,8 @@
+venv/
+__pycache__/
+*.pyc
+datacleaner_env.egg-info/
+uv.lock
+step_logs.json
+baseline_scores.txt
+.DS_Store

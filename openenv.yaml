@@ -1,0 +1,14 @@
+
+### `openenv.yaml`
+```yaml
+name: DataCleaner
+description: Environment for AI‑driven data cleaning tasks
+version: 1.0.0
+author: Your Name
+tags:
+  - data-cleaning
+  - real-world
+  - openenv
+observation_model: env.models.Observation
+action_model: env.models.Action
+reward_model: env.models.Reward
