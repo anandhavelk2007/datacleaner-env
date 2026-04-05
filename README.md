@@ -24,4 +24,4 @@ Data cleaning consumes 80% of data scientists' time. This environment trains age
 ## 🚀 Getting Started
 ```bash
 pip install -r requirements.txt
-python inference.py
+python inference.py"# datacleaner-env" 
