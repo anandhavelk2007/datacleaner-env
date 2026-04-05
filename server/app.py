@@ -1,6 +1,5 @@
 import sys
 import os
-import traceback
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from fastapi import FastAPI, HTTPException
@@ -28,7 +27,6 @@ class StepRequest(BaseModel):
     action: Action
 
 def safe_serialize(obj):
-    """Convert any pandas/numpy type to Python native, recursively."""
     if isinstance(obj, dict):
         return {k: safe_serialize(v) for k, v in obj.items()}
     if isinstance(obj, (list, tuple)):
@@ -54,8 +52,7 @@ async def reset(request: ResetRequest = ResetRequest()):
         obs = env.reset(request.task_id)
         return safe_serialize(obs.model_dump())
     except Exception as e:
-        detail = f"Error: {str(e)}\n{traceback.format_exc()}"
-        raise HTTPException(status_code=500, detail=detail)
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/step")
 async def step(request: StepRequest):
@@ -69,8 +66,7 @@ async def step(request: StepRequest):
             "info": info
         })
     except Exception as e:
-        detail = f"Error: {str(e)}\n{traceback.format_exc()}"
-        raise HTTPException(status_code=500, detail=detail)
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/state")
 async def get_state():
@@ -85,8 +81,7 @@ async def get_state():
         }
         return {"state": state_dict}
     except Exception as e:
-        detail = f"Error: {str(e)}\n{traceback.format_exc()}"
-        raise HTTPException(status_code=500, detail=detail)
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/health")
 async def health():
@@ -95,5 +90,10 @@ async def health():
 @app.get("/")
 async def root():
     return {"message": "DataCleaner Environment is running. Use /health, /reset, /step, /state endpoints."}
-if __name__ == "__main__":
+
+def main():
+    """Entry point for OpenEnv server."""
     uvicorn.run(app, host="0.0.0.0", port=7860)
+
+if __name__ == "__main__":
+    main()
