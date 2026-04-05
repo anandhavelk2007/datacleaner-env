@@ -1,21 +1,30 @@
 import warnings
 warnings.filterwarnings("ignore")
+
+import os
 import json
 import re
+import time
 import numpy as np
 import pandas as pd
+from openai import OpenAI
 from env.environment import DataCleanerEnv
 from env.models import Action
 
-def clean_column_name(issue, df):
-    col = re.sub(r'\s*\(.*?\)', '', issue).strip()
-    return col if col in df.columns else issue
+# Environment variables (required by hackathon)
+API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
+MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4")
+HF_TOKEN = os.getenv("HF_TOKEN", "")   # No default – must be set by user
 
-def get_action(env, obs):
+# Initialize OpenAI client (will be used if HF_TOKEN is valid)
+client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN) if HF_TOKEN else None
+
+def deterministic_action(env, obs):
+    """Fallback deterministic action (same as before) – used when API fails."""
     df = env.state.data
     clean_issues = []
     for issue in obs.column_issues:
-        col = clean_column_name(issue, df)
+        col = re.sub(r'\s*\(.*?\)', '', issue).strip()
         if col in df.columns:
             clean_issues.append(col)
     if not clean_issues:
@@ -29,6 +38,43 @@ def get_action(env, obs):
         return Action(type="impute", column=col, method="median")
     return Action(type="skip")
 
+def call_openai(prompt):
+    """Call OpenAI API using the client; returns action string or None."""
+    if not client:
+        return None
+    try:
+        response = client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.5,
+            max_tokens=150
+        )
+        return response.choices[0].message.content.strip()
+    except Exception:
+        return None
+
+def parse_action_from_response(response_text):
+    """Parse JSON action from API response; fallback to deterministic on failure."""
+    if not response_text:
+        return None
+    try:
+        # Try to extract JSON
+        start = response_text.find('{')
+        end = response_text.rfind('}') + 1
+        if start != -1 and end != 0:
+            action_dict = json.loads(response_text[start:end])
+            action_type = action_dict.get("type")
+            if action_type in ["impute", "fix_date", "normalize_cat", "skip"]:
+                return Action(
+                    type=action_type,
+                    column=action_dict.get("column"),
+                    method=action_dict.get("method"),
+                    target=action_dict.get("target")
+                )
+    except:
+        pass
+    return None
+
 def run_task(env, task_id):
     max_steps = {"easy": 2, "medium": 1, "hard": 1}[task_id]
     print(f"\n{'='*60}\n🚀 Starting task: {task_id.upper()}")
@@ -38,7 +84,23 @@ def run_task(env, task_id):
     while not done and step < max_steps:
         step += 1
         print(f"\n--- Step {step} ---")
-        action = get_action(env, obs)
+        # Build prompt for LLM
+        prompt = f"""
+Task: {obs.description}
+Current dataset issues: {obs.column_issues}
+Choose an action and output it as JSON.
+Example: {{"type": "impute", "column": "age", "method": "median"}}
+Action:"""
+        # Try OpenAI first
+        action = None
+        if client:
+            resp_text = call_openai(prompt)
+            if resp_text:
+                action = parse_action_from_response(resp_text)
+        # Fallback to deterministic if OpenAI failed or returned invalid
+        if action is None:
+            action = deterministic_action(env, obs)
+            print(f"⚠️ API fallback – using deterministic action")
         print(f"🤖 Agent action: {action.type}", end="")
         if action.column: print(f" on column '{action.column}'", end="")
         if action.method: print(f" using {action.method}", end="")
