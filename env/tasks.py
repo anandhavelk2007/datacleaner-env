@@ -16,49 +16,27 @@ TASKS = {
 }
 
 def grader_easy(df: pd.DataFrame) -> float:
-    """Score = 1 - (missing cells / total cells), clamped to (0,1)."""
     total_missing = df.isnull().sum().sum()
     total_cells = df.size
-    if total_cells == 0:
-        return 0.001
-    raw_score = 1.0 - (total_missing / total_cells)
-    # Clamp to (0,1) exclusive
-    if raw_score <= 0.0:
-        return 0.001
-    if raw_score >= 1.0:
-        return 0.999
-    return raw_score
+    return 1.0 - (total_missing / total_cells) if total_cells else 0.0
 
 def grader_medium(df: pd.DataFrame) -> float:
-    """Score based on how many dates are correctly parsed, clamped to (0,1)."""
     col = 'date'
     if col not in df.columns:
-        return 0.001
+        return 0.0
     if pd.api.types.is_datetime64_any_dtype(df[col]):
-        return 0.999
+        return 1.0
     parsed = pd.to_datetime(df[col], errors='coerce')
-    valid = parsed.notna()
-    raw_score = valid.mean()
-    if raw_score <= 0.0:
-        return 0.001
-    if raw_score >= 1.0:
-        return 0.999
-    return raw_score
+    return parsed.notna().mean()
 
 def grader_hard(df: pd.DataFrame) -> float:
-    """Check proportion of normalized country names, clamped to (0,1)."""
     col = 'country'
     if col not in df.columns:
-        return 0.001
+        return 0.0
     cleaned = df[col].astype(str).str.upper().str.strip()
     correct = (cleaned == "USA") | (cleaned == "UNITED STATES") | (cleaned == "U.S.A")
-    raw_score = correct.mean()
-    if raw_score <= 0.0:
-        return 0.001
-    if raw_score >= 1.0:
-        return 0.999
-    return raw_score
+    return correct.mean()
 
 def get_grader(task_id: str):
     mapping = {"easy": grader_easy, "medium": grader_medium, "hard": grader_hard}
-    return mapping.get(task_id, lambda df: 0.001)
+    return mapping.get(task_id, lambda df: 0.0)
