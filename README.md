@@ -1,3 +1,14 @@
+---
+title: DataCleaner Environment
+emoji: 🧹
+colorFrom: blue
+colorTo: green
+sdk: docker
+sdk_version: "1.0"
+pinned: false
+license: mit
+---
+
 # 🧹 DataCleaner Environment
 
 [![Open In Spaces](https://img.shields.io/badge/🤗-Open%20in%20Spaces-blue)](https://huggingface.co/spaces/Anandh-235/datacleaner-env)
